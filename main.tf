@@ -63,11 +63,11 @@ module "linux-n01649123" {
     sku       = "8_4"
     version   = "latest"
   }
-
   storage_account_uri = module.common-n01649123.storage_account.primary_blob_endpoint
 
   #storage_container_name = module.common-n01649123.storage_container_name
-  depends_on   = [module.rgroup-n01649123,module.common-n01649123,module.network-n01649123]
+
+  depends_on = [module.rgroup-n01649123, module.common-n01649123, module.network-n01649123]
 
 }
 
@@ -89,7 +89,7 @@ module "windows-n01649123" {
   }
 
   storage_account_uri = module.common-n01649123.storage_account.primary_blob_endpoint
- depends_on   = [module.rgroup-n01649123,module.common-n01649123,module.network-n01649123]
+  depends_on          = [module.rgroup-n01649123, module.common-n01649123, module.network-n01649123]
 
 
 }
@@ -103,7 +103,7 @@ module "datadisks-n01649123" {
   disk_count   = 4
   win_vm_ids   = module.windows-n01649123.windows_vm_ids
   linux_vm_ids = module.linux-n01649123.Linux_vm_id
-   depends_on   = [module.rgroup-n01649123,module.windows-n01649123,module.linux-n01649123]
+  depends_on   = [module.rgroup-n01649123, module.windows-n01649123, module.linux-n01649123]
 }
 
 #7. Child Module for Database:
@@ -113,7 +113,7 @@ module "database-n01649123" {
   location    = module.rgroup-n01649123.rg.location
   server_name = "9123-server"
   db_name     = "db-9123"
-depends_on = [ module.rgroup-n01649123 ]
+  depends_on  = [module.rgroup-n01649123]
 }
 
 #8. Child Module for Load Balancer:
@@ -124,5 +124,17 @@ module "loadbalancer-n01649123" {
   rg_name               = module.rgroup-n01649123.rg.name
   vm_names              = module.linux-n01649123.Linux_hostname
   network_interface_ids = module.linux-n01649123.Linux_nic_id
-  depends_on = [ module.rgroup-n01649123,module.linux-n01649123 ]
+  depends_on            = [module.rgroup-n01649123, module.linux-n01649123]
 }
+
+# ansible provisioner
+resource "null_resource" "ansible_provisioner" {
+    depends_on = [module.linux-n01649123,module.datadisks-n01649123]
+
+     provisioner "local-exec" {
+      command = "ansible-playbook -i /home/n01649123/automation/ansible/automation-project-ansible-n01649123/hosts /home/n01649123/automation/ansible/automation-project-ansible-n01649123/n01649123-playbook.yml"
+      environment = {
+        ANSIBLE_HOST_KEY_CHECKING = "False"
+       }
+     }
+   }
